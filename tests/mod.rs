@@ -9,3 +9,6 @@
 //! # qubit-metadata Tests
 //!
 //! All unit and integration tests for `qubit-metadata`.
+
+mod test_metadata;
+mod test_filter;
