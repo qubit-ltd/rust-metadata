@@ -1,7 +1,7 @@
 # Qubit Metadata
 
-[![CircleCI](https://circleci.com/gh/qubit-ltd/rust-metadata.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rust-metadata)
-[![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rust-metadata/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rust-metadata?branch=main)
+[![CircleCI](https://circleci.com/gh/qubit-ltd/rs-metadata.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rs-metadata)
+[![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rs-metadata/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rs-metadata?branch=main)
 [![Crates.io](https://img.shields.io/crates/v/qubit-metadata.svg?color=blue)](https://crates.io/crates/qubit-metadata)
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
