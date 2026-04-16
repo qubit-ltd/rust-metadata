@@ -103,7 +103,9 @@ Edge cases: an `And` with **no** children matches **every** `Metadata`; an `Or` 
 
 ### Evaluation
 
-Call `filter.matches(&meta)` to obtain a `bool`. How a missing key interacts with each leaf operator is defined on [`Condition`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.Condition.html) (for example, `equal` requires the key to exist; `not_equal` may still match when the key is absent).
+Call `filter.matches(&meta)` to obtain a `bool`. How a missing key interacts with each leaf operator is defined on [`Condition`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.Condition.html).
+
+By default, missing keys satisfy `not_equal` and `not_in_values` (legacy behavior). If you want strict behavior, call [`matches_with_missing_key_policy`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MetadataFilter.html#method.matches_with_missing_key_policy) with [`MissingKeyPolicy::NoMatch`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MissingKeyPolicy.html).
 
 ### Serde
 

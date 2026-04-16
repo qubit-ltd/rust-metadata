@@ -32,6 +32,29 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Condition, Metadata};
 
+/// Policy that controls how filters treat missing keys for negative predicates.
+///
+/// The policy only affects [`Condition::NotEqual`] and [`Condition::NotIn`].
+/// Other predicates keep their existing semantics (`equal` requires presence,
+/// `exists` / `not_exists` check presence directly, etc.).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum MissingKeyPolicy {
+    /// Missing keys satisfy negative predicates (`not_equal`, `not_in_values`).
+    ///
+    /// This is the historical behavior and therefore the default.
+    #[default]
+    Match,
+    /// Missing keys do not satisfy negative predicates.
+    NoMatch,
+}
+
+impl MissingKeyPolicy {
+    #[inline]
+    pub(crate) const fn matches_negative_predicates(self) -> bool {
+        matches!(self, Self::Match)
+    }
+}
+
 /// A composable filter expression over [`Metadata`].
 ///
 /// Filters can be built from primitive [`Condition`]s and combined with
@@ -225,11 +248,31 @@ impl MetadataFilter {
     /// Returns `true` if `meta` satisfies this filter.
     #[inline]
     pub fn matches(&self, meta: &Metadata) -> bool {
+        self.matches_with_missing_key_policy(meta, MissingKeyPolicy::default())
+    }
+
+    /// Returns `true` if `meta` satisfies this filter using `missing_key_policy`.
+    ///
+    /// This policy only affects negative predicates that can be interpreted in
+    /// two ways when the key is absent: [`MetadataFilter::not_equal`] and
+    /// [`MetadataFilter::not_in_values`].
+    #[inline]
+    pub fn matches_with_missing_key_policy(
+        &self,
+        meta: &Metadata,
+        missing_key_policy: MissingKeyPolicy,
+    ) -> bool {
         match self {
-            MetadataFilter::Condition(cond) => cond.matches(meta),
-            MetadataFilter::And(children) => children.iter().all(|f| f.matches(meta)),
-            MetadataFilter::Or(children) => children.iter().any(|f| f.matches(meta)),
-            MetadataFilter::Not(inner) => !inner.matches(meta),
+            MetadataFilter::Condition(cond) => cond.matches(meta, missing_key_policy),
+            MetadataFilter::And(children) => children
+                .iter()
+                .all(|f| f.matches_with_missing_key_policy(meta, missing_key_policy)),
+            MetadataFilter::Or(children) => children
+                .iter()
+                .any(|f| f.matches_with_missing_key_policy(meta, missing_key_policy)),
+            MetadataFilter::Not(inner) => {
+                !inner.matches_with_missing_key_policy(meta, missing_key_policy)
+            }
         }
     }
 }

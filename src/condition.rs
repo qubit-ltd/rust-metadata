@@ -13,7 +13,7 @@ use std::cmp::Ordering;
 
 use serde_json::{Number, Value};
 
-use crate::Metadata;
+use crate::{Metadata, MissingKeyPolicy};
 
 /// A single comparison operator applied to one metadata key.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -88,10 +88,13 @@ pub enum Condition {
 
 impl Condition {
     #[inline]
-    pub(crate) fn matches(&self, meta: &Metadata) -> bool {
+    pub(crate) fn matches(&self, meta: &Metadata, missing_key_policy: MissingKeyPolicy) -> bool {
         match self {
             Condition::Equal { key, value } => meta.get_raw(key) == Some(value),
-            Condition::NotEqual { key, value } => meta.get_raw(key) != Some(value),
+            Condition::NotEqual { key, value } => match meta.get_raw(key) {
+                Some(stored) => stored != value,
+                None => missing_key_policy.matches_negative_predicates(),
+            },
             Condition::Less { key, value } => meta
                 .get_raw(key)
                 .is_some_and(|v| compare_values(v, value) == Some(Ordering::Less)),
@@ -111,9 +114,10 @@ impl Condition {
                 )
             }),
             Condition::In { key, values } => meta.get_raw(key).is_some_and(|v| values.contains(v)),
-            Condition::NotIn { key, values } => {
-                meta.get_raw(key).is_none_or(|v| !values.contains(v))
-            }
+            Condition::NotIn { key, values } => match meta.get_raw(key) {
+                Some(stored) => !values.contains(stored),
+                None => missing_key_policy.matches_negative_predicates(),
+            },
             Condition::Exists { key } => meta.contains_key(key),
             Condition::NotExists { key } => !meta.contains_key(key),
         }

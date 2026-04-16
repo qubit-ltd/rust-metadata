@@ -102,7 +102,9 @@ assert_eq!(priority, 3);
 
 ### 求值
 
-调用 `filter.matches(&meta)` 即可。某个键不存在时，各类叶子条件是否匹配，由 [`Condition`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.Condition.html) 的语义决定（例如 `equal` 要求键必须存在；`not_equal` 在键缺失时仍可能为真）。
+调用 `filter.matches(&meta)` 即可。某个键不存在时，各类叶子条件是否匹配，由 [`Condition`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.Condition.html) 的语义决定。
+
+默认情况下，缺失键会让 `not_equal` 和 `not_in_values` 返回匹配（兼容历史行为）。如果需要严格语义，可调用 [`matches_with_missing_key_policy`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MetadataFilter.html#method.matches_with_missing_key_policy) 并传入 [`MissingKeyPolicy::NoMatch`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MissingKeyPolicy.html)。
 
 ### 序列化
 

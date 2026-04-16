@@ -9,7 +9,7 @@
 //! Unit tests for [`qubit_metadata::Condition`] (leaf predicates via
 //! [`qubit_metadata::MetadataFilter`] constructors).
 
-use qubit_metadata::{Condition, Metadata, MetadataFilter};
+use qubit_metadata::{Condition, Metadata, MetadataFilter, MissingKeyPolicy};
 
 fn sample() -> Metadata {
     let mut m = Metadata::new();
@@ -57,6 +57,13 @@ fn ne_does_not_match_equal_value() {
 fn ne_missing_key_matches() {
     let f = MetadataFilter::not_equal("missing", "anything");
     assert!(f.matches(&sample()));
+}
+
+#[test]
+fn ne_missing_key_respects_missing_key_policy() {
+    let f = MetadataFilter::not_equal("missing", "anything");
+    assert!(f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::Match));
+    assert!(!f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::NoMatch));
 }
 
 // ── Greater / GreaterEqual / Less / LessEqual ────────────────────────────────
@@ -268,6 +275,22 @@ fn not_in_values_no_match() {
 fn not_in_values_missing_key_matches() {
     let f = MetadataFilter::not_in_values("missing", ["x"]);
     assert!(f.matches(&sample()));
+}
+
+#[test]
+fn not_in_values_missing_key_respects_missing_key_policy() {
+    let f = MetadataFilter::not_in_values("missing", ["x"]);
+    assert!(f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::Match));
+    assert!(!f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::NoMatch));
+}
+
+#[test]
+fn missing_key_policy_applies_recursively_in_filter_tree() {
+    let f = MetadataFilter::not_equal("missing", "x")
+        .and(MetadataFilter::not_in_values("missing-2", ["y"]))
+        .or(MetadataFilter::equal("status", "inactive"));
+    assert!(f.matches(&sample()));
+    assert!(!f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::NoMatch));
 }
 
 // ── Serde (Condition) ────────────────────────────────────────────────────────
