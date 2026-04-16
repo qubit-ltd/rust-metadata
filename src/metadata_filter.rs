@@ -23,14 +23,15 @@
 //! meta.set("score", 42_i64);
 //!
 //! let filter = MetadataFilter::equal("status", "active")
-//!     .and(MetadataFilter::greater_equal("score", 10_i64));
+//!     .unwrap()
+//!     .and(MetadataFilter::greater_equal("score", 10_i64).unwrap());
 //!
 //! assert!(filter.matches(&meta));
 //! ```
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Condition, Metadata};
+use crate::{Condition, Metadata, MetadataError, MetadataResult};
 
 /// Policy that controls how filters treat missing keys for negative predicates.
 ///
@@ -70,7 +71,8 @@ impl MissingKeyPolicy {
 /// meta.set("version", 2_i64);
 ///
 /// let f = MetadataFilter::equal("env", "prod")
-///     .and(MetadataFilter::greater_equal("version", 1_i64));
+///     .unwrap()
+///     .and(MetadataFilter::greater_equal("version", 1_i64).unwrap());
 ///
 /// assert!(f.matches(&meta));
 /// ```
@@ -87,66 +89,90 @@ pub enum MetadataFilter {
 }
 
 impl MetadataFilter {
+    #[inline]
+    fn serialize_value<T: Serialize>(key: &str, value: T) -> MetadataResult<serde_json::Value> {
+        serde_json::to_value(value)
+            .map_err(|error| MetadataError::serialization_error(key.to_string(), error))
+    }
+
     // ── Leaf constructors ────────────────────────────────────────────────────
 
     /// Creates an equality filter: `key == value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when `value` cannot be
+    /// serialized into [`serde_json::Value`].
     #[inline]
-    pub fn equal<T: Serialize>(key: impl Into<String>, value: T) -> Self {
-        Self::Condition(Condition::Equal {
-            key: key.into(),
-            value: serde_json::to_value(value)
-                .expect("MetadataFilter::equal: value must be serializable"),
-        })
+    pub fn equal<T: Serialize>(key: impl Into<String>, value: T) -> MetadataResult<Self> {
+        let key = key.into();
+        let value = Self::serialize_value(&key, value)?;
+        Ok(Self::Condition(Condition::Equal { key, value }))
     }
 
     /// Creates a not-equal filter: `key != value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when `value` cannot be
+    /// serialized into [`serde_json::Value`].
     #[inline]
-    pub fn not_equal<T: Serialize>(key: impl Into<String>, value: T) -> Self {
-        Self::Condition(Condition::NotEqual {
-            key: key.into(),
-            value: serde_json::to_value(value)
-                .expect("MetadataFilter::not_equal: value must be serializable"),
-        })
+    pub fn not_equal<T: Serialize>(key: impl Into<String>, value: T) -> MetadataResult<Self> {
+        let key = key.into();
+        let value = Self::serialize_value(&key, value)?;
+        Ok(Self::Condition(Condition::NotEqual { key, value }))
     }
 
     /// Creates a greater-than filter: `key > value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when `value` cannot be
+    /// serialized into [`serde_json::Value`].
     #[inline]
-    pub fn greater<T: Serialize>(key: impl Into<String>, value: T) -> Self {
-        Self::Condition(Condition::Greater {
-            key: key.into(),
-            value: serde_json::to_value(value)
-                .expect("MetadataFilter::greater: value must be serializable"),
-        })
+    pub fn greater<T: Serialize>(key: impl Into<String>, value: T) -> MetadataResult<Self> {
+        let key = key.into();
+        let value = Self::serialize_value(&key, value)?;
+        Ok(Self::Condition(Condition::Greater { key, value }))
     }
 
     /// Creates a greater-than-or-equal filter: `key >= value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when `value` cannot be
+    /// serialized into [`serde_json::Value`].
     #[inline]
-    pub fn greater_equal<T: Serialize>(key: impl Into<String>, value: T) -> Self {
-        Self::Condition(Condition::GreaterEqual {
-            key: key.into(),
-            value: serde_json::to_value(value)
-                .expect("MetadataFilter::greater_equal: value must be serializable"),
-        })
+    pub fn greater_equal<T: Serialize>(key: impl Into<String>, value: T) -> MetadataResult<Self> {
+        let key = key.into();
+        let value = Self::serialize_value(&key, value)?;
+        Ok(Self::Condition(Condition::GreaterEqual { key, value }))
     }
 
     /// Creates a less-than filter: `key < value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when `value` cannot be
+    /// serialized into [`serde_json::Value`].
     #[inline]
-    pub fn less<T: Serialize>(key: impl Into<String>, value: T) -> Self {
-        Self::Condition(Condition::Less {
-            key: key.into(),
-            value: serde_json::to_value(value)
-                .expect("MetadataFilter::less: value must be serializable"),
-        })
+    pub fn less<T: Serialize>(key: impl Into<String>, value: T) -> MetadataResult<Self> {
+        let key = key.into();
+        let value = Self::serialize_value(&key, value)?;
+        Ok(Self::Condition(Condition::Less { key, value }))
     }
 
     /// Creates a less-than-or-equal filter: `key <= value`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when `value` cannot be
+    /// serialized into [`serde_json::Value`].
     #[inline]
-    pub fn less_equal<T: Serialize>(key: impl Into<String>, value: T) -> Self {
-        Self::Condition(Condition::LessEqual {
-            key: key.into(),
-            value: serde_json::to_value(value)
-                .expect("MetadataFilter::less_equal: value must be serializable"),
-        })
+    pub fn less_equal<T: Serialize>(key: impl Into<String>, value: T) -> MetadataResult<Self> {
+        let key = key.into();
+        let value = Self::serialize_value(&key, value)?;
+        Ok(Self::Condition(Condition::LessEqual { key, value }))
     }
 
     /// Creates an existence filter: the key must be present.
@@ -162,43 +188,43 @@ impl MetadataFilter {
     }
 
     /// Creates an in-set filter: `key ∈ values`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when any item in `values`
+    /// cannot be serialized into [`serde_json::Value`].
     #[inline]
-    pub fn in_values<T, I>(key: impl Into<String>, values: I) -> Self
+    pub fn in_values<T, I>(key: impl Into<String>, values: I) -> MetadataResult<Self>
     where
         T: Serialize,
         I: IntoIterator<Item = T>,
     {
+        let key = key.into();
         let values = values
             .into_iter()
-            .map(|v| {
-                serde_json::to_value(v)
-                    .expect("MetadataFilter::in_values: each value must be serializable")
-            })
-            .collect();
-        Self::Condition(Condition::In {
-            key: key.into(),
-            values,
-        })
+            .map(|v| Self::serialize_value(&key, v))
+            .collect::<MetadataResult<Vec<_>>>()?;
+        Ok(Self::Condition(Condition::In { key, values }))
     }
 
     /// Creates a not-in-set filter: `key ∉ values`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::SerializationError`] when any item in `values`
+    /// cannot be serialized into [`serde_json::Value`].
     #[inline]
-    pub fn not_in_values<T, I>(key: impl Into<String>, values: I) -> Self
+    pub fn not_in_values<T, I>(key: impl Into<String>, values: I) -> MetadataResult<Self>
     where
         T: Serialize,
         I: IntoIterator<Item = T>,
     {
+        let key = key.into();
         let values = values
             .into_iter()
-            .map(|v| {
-                serde_json::to_value(v)
-                    .expect("MetadataFilter::not_in_values: each value must be serializable")
-            })
-            .collect();
-        Self::Condition(Condition::NotIn {
-            key: key.into(),
-            values,
-        })
+            .map(|v| Self::serialize_value(&key, v))
+            .collect::<MetadataResult<Vec<_>>>()?;
+        Ok(Self::Condition(Condition::NotIn { key, values }))
     }
 
     // ── Logical combinators ──────────────────────────────────────────────────

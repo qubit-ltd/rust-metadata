@@ -25,43 +25,43 @@ fn sample() -> Metadata {
 
 #[test]
 fn eq_matches_equal_string() {
-    let f = MetadataFilter::equal("status", "active");
+    let f = MetadataFilter::equal("status", "active").unwrap();
     assert!(f.matches(&sample()));
 }
 
 #[test]
 fn eq_does_not_match_different_string() {
-    let f = MetadataFilter::equal("status", "inactive");
+    let f = MetadataFilter::equal("status", "inactive").unwrap();
     assert!(!f.matches(&sample()));
 }
 
 #[test]
 fn eq_missing_key_does_not_match() {
-    let f = MetadataFilter::equal("missing", "x");
+    let f = MetadataFilter::equal("missing", "x").unwrap();
     assert!(!f.matches(&sample()));
 }
 
 #[test]
 fn ne_matches_different_value() {
-    let f = MetadataFilter::not_equal("status", "inactive");
+    let f = MetadataFilter::not_equal("status", "inactive").unwrap();
     assert!(f.matches(&sample()));
 }
 
 #[test]
 fn ne_does_not_match_equal_value() {
-    let f = MetadataFilter::not_equal("status", "active");
+    let f = MetadataFilter::not_equal("status", "active").unwrap();
     assert!(!f.matches(&sample()));
 }
 
 #[test]
 fn ne_missing_key_matches() {
-    let f = MetadataFilter::not_equal("missing", "anything");
+    let f = MetadataFilter::not_equal("missing", "anything").unwrap();
     assert!(f.matches(&sample()));
 }
 
 #[test]
 fn ne_missing_key_respects_missing_key_policy() {
-    let f = MetadataFilter::not_equal("missing", "anything");
+    let f = MetadataFilter::not_equal("missing", "anything").unwrap();
     assert!(f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::Match));
     assert!(!f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::NoMatch));
 }
@@ -70,52 +70,96 @@ fn ne_missing_key_respects_missing_key_policy() {
 
 #[test]
 fn gt_integer() {
-    assert!(MetadataFilter::greater("score", 10_i64).matches(&sample()));
-    assert!(!MetadataFilter::greater("score", 42_i64).matches(&sample()));
-    assert!(!MetadataFilter::greater("score", 100_i64).matches(&sample()));
+    assert!(MetadataFilter::greater("score", 10_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::greater("score", 42_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::greater("score", 100_i64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
 fn gte_integer() {
-    assert!(MetadataFilter::greater_equal("score", 42_i64).matches(&sample()));
-    assert!(MetadataFilter::greater_equal("score", 10_i64).matches(&sample()));
-    assert!(!MetadataFilter::greater_equal("score", 43_i64).matches(&sample()));
+    assert!(MetadataFilter::greater_equal("score", 42_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(MetadataFilter::greater_equal("score", 10_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::greater_equal("score", 43_i64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
 fn lt_integer() {
-    assert!(MetadataFilter::less("score", 100_i64).matches(&sample()));
-    assert!(!MetadataFilter::less("score", 42_i64).matches(&sample()));
-    assert!(!MetadataFilter::less("score", 10_i64).matches(&sample()));
+    assert!(MetadataFilter::less("score", 100_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::less("score", 42_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::less("score", 10_i64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
 fn lte_integer() {
-    assert!(MetadataFilter::less_equal("score", 42_i64).matches(&sample()));
-    assert!(MetadataFilter::less_equal("score", 100_i64).matches(&sample()));
-    assert!(!MetadataFilter::less_equal("score", 41_i64).matches(&sample()));
+    assert!(MetadataFilter::less_equal("score", 42_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(MetadataFilter::less_equal("score", 100_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::less_equal("score", 41_i64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
 fn gt_string_lexicographic() {
-    assert!(MetadataFilter::greater("status", "aaa").matches(&sample()));
-    assert!(!MetadataFilter::greater("status", "zzz").matches(&sample()));
+    assert!(MetadataFilter::greater("status", "aaa")
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::greater("status", "zzz")
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
 fn range_filter_missing_key_does_not_match() {
-    assert!(!MetadataFilter::greater("missing", 0_i64).matches(&sample()));
-    assert!(!MetadataFilter::greater_equal("missing", 0_i64).matches(&sample()));
-    assert!(!MetadataFilter::less("missing", 100_i64).matches(&sample()));
-    assert!(!MetadataFilter::less_equal("missing", 100_i64).matches(&sample()));
+    assert!(!MetadataFilter::greater("missing", 0_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::greater_equal("missing", 0_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::less("missing", 100_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::less_equal("missing", 100_i64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
 fn range_filter_float_values() {
-    assert!(MetadataFilter::greater("ratio", 0.5_f64).matches(&sample()));
-    assert!(MetadataFilter::greater_equal("ratio", 0.75_f64).matches(&sample()));
-    assert!(MetadataFilter::less("ratio", 1.0_f64).matches(&sample()));
-    assert!(MetadataFilter::less_equal("ratio", 0.75_f64).matches(&sample()));
+    assert!(MetadataFilter::greater("ratio", 0.5_f64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(MetadataFilter::greater_equal("ratio", 0.75_f64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(MetadataFilter::less("ratio", 1.0_f64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(MetadataFilter::less_equal("ratio", 0.75_f64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 #[test]
@@ -123,21 +167,25 @@ fn range_filter_u64_values() {
     let mut m = Metadata::new();
     m.set("count", 10_u64);
 
-    assert!(MetadataFilter::greater("count", 9_u64).matches(&m));
-    assert!(MetadataFilter::greater_equal("count", 10_u64).matches(&m));
-    assert!(MetadataFilter::less("count", 11_u64).matches(&m));
-    assert!(MetadataFilter::less_equal("count", 10_u64).matches(&m));
+    assert!(MetadataFilter::greater("count", 9_u64).unwrap().matches(&m));
+    assert!(MetadataFilter::greater_equal("count", 10_u64)
+        .unwrap()
+        .matches(&m));
+    assert!(MetadataFilter::less("count", 11_u64).unwrap().matches(&m));
+    assert!(MetadataFilter::less_equal("count", 10_u64)
+        .unwrap()
+        .matches(&m));
 }
 
 #[test]
 fn range_filter_mixed_signed_unsigned_values() {
     let mut a = Metadata::new();
     a.set("score", -1_i64);
-    assert!(MetadataFilter::less("score", 0_u64).matches(&a));
+    assert!(MetadataFilter::less("score", 0_u64).unwrap().matches(&a));
 
     let mut b = Metadata::new();
     b.set("score", 5_u64);
-    assert!(MetadataFilter::greater("score", 4_i64).matches(&b));
+    assert!(MetadataFilter::greater("score", 4_i64).unwrap().matches(&b));
 }
 
 #[test]
@@ -146,17 +194,27 @@ fn range_filter_mixed_signed_unsigned_with_huge_unsigned_values() {
 
     let mut negative = Metadata::new();
     negative.set("score", -1_i64);
-    assert!(MetadataFilter::less("score", huge).matches(&negative));
+    assert!(MetadataFilter::less("score", huge)
+        .unwrap()
+        .matches(&negative));
 
     let mut positive = Metadata::new();
     positive.set("score", 5_i64);
-    assert!(MetadataFilter::less("score", huge).matches(&positive));
+    assert!(MetadataFilter::less("score", huge)
+        .unwrap()
+        .matches(&positive));
 
     let mut huge_unsigned = Metadata::new();
     huge_unsigned.set("score", huge);
-    assert!(MetadataFilter::greater("score", i64::MAX).matches(&huge_unsigned));
-    assert!(MetadataFilter::greater("score", -1_i64).matches(&huge_unsigned));
-    assert!(MetadataFilter::greater("score", huge - 1).matches(&huge_unsigned));
+    assert!(MetadataFilter::greater("score", i64::MAX)
+        .unwrap()
+        .matches(&huge_unsigned));
+    assert!(MetadataFilter::greater("score", -1_i64)
+        .unwrap()
+        .matches(&huge_unsigned));
+    assert!(MetadataFilter::greater("score", huge - 1)
+        .unwrap()
+        .matches(&huge_unsigned));
 }
 
 #[test]
@@ -164,8 +222,10 @@ fn range_filter_mixed_u64_and_f64() {
     let mut m = Metadata::new();
     m.set("count", 5_u64);
 
-    assert!(MetadataFilter::greater("count", 4.5_f64).matches(&m));
-    assert!(!MetadataFilter::less("count", 4.5_f64).matches(&m));
+    assert!(MetadataFilter::greater("count", 4.5_f64)
+        .unwrap()
+        .matches(&m));
+    assert!(!MetadataFilter::less("count", 4.5_f64).unwrap().matches(&m));
 }
 
 #[test]
@@ -173,8 +233,14 @@ fn range_filter_large_integer_vs_float_precision_regression() {
     let mut m = Metadata::new();
     m.set("n", 9_007_199_254_740_993_i64);
 
-    assert!(MetadataFilter::greater("n", 9_007_199_254_740_992_f64).matches(&m));
-    assert!(MetadataFilter::greater_equal("n", 9_007_199_254_740_992_f64).matches(&m));
+    assert!(MetadataFilter::greater("n", 9_007_199_254_740_992_f64)
+        .unwrap()
+        .matches(&m));
+    assert!(
+        MetadataFilter::greater_equal("n", 9_007_199_254_740_992_f64)
+            .unwrap()
+            .matches(&m)
+    );
 }
 
 #[test]
@@ -182,8 +248,14 @@ fn range_filter_large_unsigned_vs_float_precision_regression() {
     let mut m = Metadata::new();
     m.set("n", 9_007_199_254_740_993_u64);
 
-    assert!(MetadataFilter::greater("n", 9_007_199_254_740_992_f64).matches(&m));
-    assert!(MetadataFilter::greater_equal("n", 9_007_199_254_740_992_f64).matches(&m));
+    assert!(MetadataFilter::greater("n", 9_007_199_254_740_992_f64)
+        .unwrap()
+        .matches(&m));
+    assert!(
+        MetadataFilter::greater_equal("n", 9_007_199_254_740_992_f64)
+            .unwrap()
+            .matches(&m)
+    );
 }
 
 #[test]
@@ -192,29 +264,41 @@ fn range_filter_float_vs_integer_and_huge_unsigned() {
 
     let mut m = Metadata::new();
     m.set("ratio", 3.5_f64);
-    assert!(MetadataFilter::greater("ratio", 3_i64).matches(&m));
+    assert!(MetadataFilter::greater("ratio", 3_i64).unwrap().matches(&m));
 
     let mut n = Metadata::new();
     n.set("value", 9_223_372_036_854_777_856_f64);
-    assert!(MetadataFilter::greater("value", huge_u).matches(&n));
+    assert!(MetadataFilter::greater("value", huge_u)
+        .unwrap()
+        .matches(&n));
 }
 
 #[test]
 fn range_filter_large_integer_float_non_integral_fallback() {
     let mut signed = Metadata::new();
     signed.set("n", 9_007_199_254_740_993_i64);
-    assert!(!MetadataFilter::greater("n", 0.5_f64).matches(&signed));
+    assert!(!MetadataFilter::greater("n", 0.5_f64)
+        .unwrap()
+        .matches(&signed));
 
     let mut unsigned = Metadata::new();
     unsigned.set("n", (i64::MAX as u64) + 123);
-    assert!(!MetadataFilter::greater("n", 0.5_f64).matches(&unsigned));
-    assert!(MetadataFilter::greater("n", -1.0_f64).matches(&unsigned));
+    assert!(!MetadataFilter::greater("n", 0.5_f64)
+        .unwrap()
+        .matches(&unsigned));
+    assert!(MetadataFilter::greater("n", -1.0_f64)
+        .unwrap()
+        .matches(&unsigned));
 }
 
 #[test]
 fn range_filter_incomparable_types_do_not_match() {
-    assert!(!MetadataFilter::greater("status", 1_i64).matches(&sample()));
-    assert!(!MetadataFilter::less("verified", 1_i64).matches(&sample()));
+    assert!(!MetadataFilter::greater("status", 1_i64)
+        .unwrap()
+        .matches(&sample()));
+    assert!(!MetadataFilter::less("verified", 1_i64)
+        .unwrap()
+        .matches(&sample()));
 }
 
 // ── Exists / NotExists ───────────────────────────────────────────────────────
@@ -243,43 +327,43 @@ fn not_exists_present_key() {
 
 #[test]
 fn in_values_matches() {
-    let f = MetadataFilter::in_values("status", ["active", "pending"]);
+    let f = MetadataFilter::in_values("status", ["active", "pending"]).unwrap();
     assert!(f.matches(&sample()));
 }
 
 #[test]
 fn in_values_no_match() {
-    let f = MetadataFilter::in_values("status", ["inactive", "pending"]);
+    let f = MetadataFilter::in_values("status", ["inactive", "pending"]).unwrap();
     assert!(!f.matches(&sample()));
 }
 
 #[test]
 fn in_values_missing_key() {
-    let f = MetadataFilter::in_values("missing", ["x"]);
+    let f = MetadataFilter::in_values("missing", ["x"]).unwrap();
     assert!(!f.matches(&sample()));
 }
 
 #[test]
 fn not_in_values_matches() {
-    let f = MetadataFilter::not_in_values("status", ["inactive", "pending"]);
+    let f = MetadataFilter::not_in_values("status", ["inactive", "pending"]).unwrap();
     assert!(f.matches(&sample()));
 }
 
 #[test]
 fn not_in_values_no_match() {
-    let f = MetadataFilter::not_in_values("status", ["active", "pending"]);
+    let f = MetadataFilter::not_in_values("status", ["active", "pending"]).unwrap();
     assert!(!f.matches(&sample()));
 }
 
 #[test]
 fn not_in_values_missing_key_matches() {
-    let f = MetadataFilter::not_in_values("missing", ["x"]);
+    let f = MetadataFilter::not_in_values("missing", ["x"]).unwrap();
     assert!(f.matches(&sample()));
 }
 
 #[test]
 fn not_in_values_missing_key_respects_missing_key_policy() {
-    let f = MetadataFilter::not_in_values("missing", ["x"]);
+    let f = MetadataFilter::not_in_values("missing", ["x"]).unwrap();
     assert!(f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::Match));
     assert!(!f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::NoMatch));
 }
@@ -287,8 +371,9 @@ fn not_in_values_missing_key_respects_missing_key_policy() {
 #[test]
 fn missing_key_policy_applies_recursively_in_filter_tree() {
     let f = MetadataFilter::not_equal("missing", "x")
-        .and(MetadataFilter::not_in_values("missing-2", ["y"]))
-        .or(MetadataFilter::equal("status", "inactive"));
+        .unwrap()
+        .and(MetadataFilter::not_in_values("missing-2", ["y"]).unwrap())
+        .or(MetadataFilter::equal("status", "inactive").unwrap());
     assert!(f.matches(&sample()));
     assert!(!f.matches_with_missing_key_policy(&sample(), MissingKeyPolicy::NoMatch));
 }

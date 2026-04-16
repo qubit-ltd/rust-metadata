@@ -145,15 +145,15 @@ impl Metadata {
 
     /// Serializes `value` and inserts it under `key`.
     ///
-    /// This is the convenience version of [`Metadata::try_set`]. It preserves
-    /// the current ergonomic API and panics if serialization fails.
+    /// This is the convenience version of [`Metadata::try_set`]. It keeps a
+    /// terse call-site API and collapses serialization failures into `None`.
+    /// Use [`Metadata::try_set`] when you need explicit error details.
     #[inline]
     pub fn set<T>(&mut self, key: impl Into<String>, value: T) -> Option<Value>
     where
         T: Serialize,
     {
-        self.try_set(key, value)
-            .expect("Metadata::set: value must be serializable to serde_json::Value")
+        self.try_set(key, value).unwrap_or(None)
     }
 
     /// Serializes `value` and inserts it under `key`, preserving serialization

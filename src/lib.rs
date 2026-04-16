@@ -50,7 +50,8 @@
 //! assert_eq!(priority, 3);
 //!
 //! let filter = MetadataFilter::equal("author", "alice")
-//!     .and(MetadataFilter::greater_equal("priority", 1_i64));
+//!     .unwrap()
+//!     .and(MetadataFilter::greater_equal("priority", 1_i64).unwrap());
 //! assert!(filter.matches(&meta));
 //! ```
 //!

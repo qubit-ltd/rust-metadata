@@ -122,7 +122,8 @@ meta.set("status", "active");
 meta.set("score", 42_i64);
 
 let filter = MetadataFilter::equal("status", "active")
-    .and(MetadataFilter::greater_equal("score", 10_i64));
+    .unwrap()
+    .and(MetadataFilter::greater_equal("score", 10_i64).unwrap());
 
 assert!(filter.matches(&meta));
 ```
@@ -137,12 +138,13 @@ meta.set("region", "eu");
 meta.set("tier", "pro");
 
 let filter = MetadataFilter::in_values("region", ["eu", "us"])
-    .or(MetadataFilter::equal("tier", "enterprise"));
+    .unwrap()
+    .or(MetadataFilter::equal("tier", "enterprise").unwrap());
 
 assert!(filter.matches(&meta));
 
-let hide_drafts = MetadataFilter::equal("status", "draft").not();
-// 等价于：!MetadataFilter::equal("status", "draft")
+let hide_drafts = MetadataFilter::equal("status", "draft").unwrap().not();
+// 等价于：!MetadataFilter::equal("status", "draft").unwrap()
 assert!(hide_drafts.matches(&meta));
 ```
 

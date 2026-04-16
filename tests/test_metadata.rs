@@ -190,6 +190,16 @@ fn try_set_reports_serialization_error() {
     }
 }
 
+#[test]
+fn set_does_not_panic_on_serialization_error() {
+    let mut meta = Metadata::new();
+    meta.set("key", "original");
+
+    let old = meta.set("key", FailingSerialize);
+    assert!(old.is_none());
+    assert_eq!(meta.get::<String>("key").as_deref(), Some("original"));
+}
+
 // ── get_raw / set_raw ────────────────────────────────────────────────────────
 
 #[test]
