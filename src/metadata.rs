@@ -11,7 +11,7 @@
 
 use std::collections::BTreeMap;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
 use crate::{MetadataError, MetadataResult, MetadataValueType};

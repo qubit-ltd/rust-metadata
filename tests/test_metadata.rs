@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Serialize, Serializer};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use qubit_metadata::{Metadata, MetadataError, MetadataValueType};
 

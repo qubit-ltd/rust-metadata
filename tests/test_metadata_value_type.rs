@@ -8,7 +8,7 @@
  ******************************************************************************/
 //! Tests for [`qubit_metadata::MetadataValueType`].
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use qubit_metadata::MetadataValueType;
 use std::str::FromStr;

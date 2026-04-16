@@ -72,96 +72,140 @@ fn ne_missing_key_respects_missing_key_policy() {
 
 #[test]
 fn gt_integer() {
-    assert!(MetadataFilter::greater("score", 10_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::greater("score", 42_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::greater("score", 100_i64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        MetadataFilter::greater("score", 10_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::greater("score", 42_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::greater("score", 100_i64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
 fn gte_integer() {
-    assert!(MetadataFilter::greater_equal("score", 42_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(MetadataFilter::greater_equal("score", 10_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::greater_equal("score", 43_i64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        MetadataFilter::greater_equal("score", 42_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        MetadataFilter::greater_equal("score", 10_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::greater_equal("score", 43_i64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
 fn lt_integer() {
-    assert!(MetadataFilter::less("score", 100_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::less("score", 42_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::less("score", 10_i64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        MetadataFilter::less("score", 100_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::less("score", 42_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::less("score", 10_i64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
 fn lte_integer() {
-    assert!(MetadataFilter::less_equal("score", 42_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(MetadataFilter::less_equal("score", 100_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::less_equal("score", 41_i64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        MetadataFilter::less_equal("score", 42_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        MetadataFilter::less_equal("score", 100_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::less_equal("score", 41_i64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
 fn gt_string_lexicographic() {
-    assert!(MetadataFilter::greater("status", "aaa")
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::greater("status", "zzz")
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        MetadataFilter::greater("status", "aaa")
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::greater("status", "zzz")
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
 fn range_filter_missing_key_does_not_match() {
-    assert!(!MetadataFilter::greater("missing", 0_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::greater_equal("missing", 0_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::less("missing", 100_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::less_equal("missing", 100_i64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        !MetadataFilter::greater("missing", 0_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::greater_equal("missing", 0_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::less("missing", 100_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::less_equal("missing", 100_i64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
 fn range_filter_float_values() {
-    assert!(MetadataFilter::greater("ratio", 0.5_f64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(MetadataFilter::greater_equal("ratio", 0.75_f64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(MetadataFilter::less("ratio", 1.0_f64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(MetadataFilter::less_equal("ratio", 0.75_f64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        MetadataFilter::greater("ratio", 0.5_f64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        MetadataFilter::greater_equal("ratio", 0.75_f64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        MetadataFilter::less("ratio", 1.0_f64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        MetadataFilter::less_equal("ratio", 0.75_f64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 #[test]
@@ -170,13 +214,17 @@ fn range_filter_u64_values() {
     m.set("count", 10_u64);
 
     assert!(MetadataFilter::greater("count", 9_u64).unwrap().matches(&m));
-    assert!(MetadataFilter::greater_equal("count", 10_u64)
-        .unwrap()
-        .matches(&m));
+    assert!(
+        MetadataFilter::greater_equal("count", 10_u64)
+            .unwrap()
+            .matches(&m)
+    );
     assert!(MetadataFilter::less("count", 11_u64).unwrap().matches(&m));
-    assert!(MetadataFilter::less_equal("count", 10_u64)
-        .unwrap()
-        .matches(&m));
+    assert!(
+        MetadataFilter::less_equal("count", 10_u64)
+            .unwrap()
+            .matches(&m)
+    );
 }
 
 #[test]
@@ -196,27 +244,37 @@ fn range_filter_mixed_signed_unsigned_with_huge_unsigned_values() {
 
     let mut negative = Metadata::new();
     negative.set("score", -1_i64);
-    assert!(MetadataFilter::less("score", huge)
-        .unwrap()
-        .matches(&negative));
+    assert!(
+        MetadataFilter::less("score", huge)
+            .unwrap()
+            .matches(&negative)
+    );
 
     let mut positive = Metadata::new();
     positive.set("score", 5_i64);
-    assert!(MetadataFilter::less("score", huge)
-        .unwrap()
-        .matches(&positive));
+    assert!(
+        MetadataFilter::less("score", huge)
+            .unwrap()
+            .matches(&positive)
+    );
 
     let mut huge_unsigned = Metadata::new();
     huge_unsigned.set("score", huge);
-    assert!(MetadataFilter::greater("score", i64::MAX)
-        .unwrap()
-        .matches(&huge_unsigned));
-    assert!(MetadataFilter::greater("score", -1_i64)
-        .unwrap()
-        .matches(&huge_unsigned));
-    assert!(MetadataFilter::greater("score", huge - 1)
-        .unwrap()
-        .matches(&huge_unsigned));
+    assert!(
+        MetadataFilter::greater("score", i64::MAX)
+            .unwrap()
+            .matches(&huge_unsigned)
+    );
+    assert!(
+        MetadataFilter::greater("score", -1_i64)
+            .unwrap()
+            .matches(&huge_unsigned)
+    );
+    assert!(
+        MetadataFilter::greater("score", huge - 1)
+            .unwrap()
+            .matches(&huge_unsigned)
+    );
 }
 
 #[test]
@@ -224,9 +282,11 @@ fn range_filter_mixed_u64_and_f64() {
     let mut m = Metadata::new();
     m.set("count", 5_u64);
 
-    assert!(MetadataFilter::greater("count", 4.5_f64)
-        .unwrap()
-        .matches(&m));
+    assert!(
+        MetadataFilter::greater("count", 4.5_f64)
+            .unwrap()
+            .matches(&m)
+    );
     assert!(!MetadataFilter::less("count", 4.5_f64).unwrap().matches(&m));
 }
 
@@ -235,9 +295,11 @@ fn range_filter_large_integer_vs_float_precision_regression() {
     let mut m = Metadata::new();
     m.set("n", 9_007_199_254_740_993_i64);
 
-    assert!(MetadataFilter::greater("n", 9_007_199_254_740_992_f64)
-        .unwrap()
-        .matches(&m));
+    assert!(
+        MetadataFilter::greater("n", 9_007_199_254_740_992_f64)
+            .unwrap()
+            .matches(&m)
+    );
     assert!(
         MetadataFilter::greater_equal("n", 9_007_199_254_740_992_f64)
             .unwrap()
@@ -250,9 +312,11 @@ fn range_filter_large_unsigned_vs_float_precision_regression() {
     let mut m = Metadata::new();
     m.set("n", 9_007_199_254_740_993_u64);
 
-    assert!(MetadataFilter::greater("n", 9_007_199_254_740_992_f64)
-        .unwrap()
-        .matches(&m));
+    assert!(
+        MetadataFilter::greater("n", 9_007_199_254_740_992_f64)
+            .unwrap()
+            .matches(&m)
+    );
     assert!(
         MetadataFilter::greater_equal("n", 9_007_199_254_740_992_f64)
             .unwrap()
@@ -270,27 +334,35 @@ fn range_filter_float_vs_integer_and_huge_unsigned() {
 
     let mut n = Metadata::new();
     n.set("value", 9_223_372_036_854_777_856_f64);
-    assert!(MetadataFilter::greater("value", huge_u)
-        .unwrap()
-        .matches(&n));
+    assert!(
+        MetadataFilter::greater("value", huge_u)
+            .unwrap()
+            .matches(&n)
+    );
 }
 
 #[test]
 fn range_filter_large_integer_float_non_integral_fallback() {
     let mut signed = Metadata::new();
     signed.set("n", 9_007_199_254_740_993_i64);
-    assert!(!MetadataFilter::greater("n", 0.5_f64)
-        .unwrap()
-        .matches(&signed));
+    assert!(
+        !MetadataFilter::greater("n", 0.5_f64)
+            .unwrap()
+            .matches(&signed)
+    );
 
     let mut unsigned = Metadata::new();
     unsigned.set("n", (i64::MAX as u64) + 123);
-    assert!(!MetadataFilter::greater("n", 0.5_f64)
-        .unwrap()
-        .matches(&unsigned));
-    assert!(MetadataFilter::greater("n", -1.0_f64)
-        .unwrap()
-        .matches(&unsigned));
+    assert!(
+        !MetadataFilter::greater("n", 0.5_f64)
+            .unwrap()
+            .matches(&unsigned)
+    );
+    assert!(
+        MetadataFilter::greater("n", -1.0_f64)
+            .unwrap()
+            .matches(&unsigned)
+    );
 }
 
 #[test]
@@ -323,12 +395,16 @@ fn approximate_number_policy_enables_lossy_fallback_for_large_u64() {
 
 #[test]
 fn range_filter_incomparable_types_do_not_match() {
-    assert!(!MetadataFilter::greater("status", 1_i64)
-        .unwrap()
-        .matches(&sample()));
-    assert!(!MetadataFilter::less("verified", 1_i64)
-        .unwrap()
-        .matches(&sample()));
+    assert!(
+        !MetadataFilter::greater("status", 1_i64)
+            .unwrap()
+            .matches(&sample())
+    );
+    assert!(
+        !MetadataFilter::less("verified", 1_i64)
+            .unwrap()
+            .matches(&sample())
+    );
 }
 
 // ── Exists / NotExists ───────────────────────────────────────────────────────

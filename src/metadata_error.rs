@@ -72,7 +72,10 @@ impl fmt::Display for MetadataError {
         match self {
             Self::MissingKey(key) => write!(f, "Metadata key not found: {key}"),
             Self::SerializationError { key, message } => {
-                write!(f, "Failed to serialize metadata value for key '{key}': {message}")
+                write!(
+                    f,
+                    "Failed to serialize metadata value for key '{key}': {message}"
+                )
             }
             Self::DeserializationError {
                 key,
