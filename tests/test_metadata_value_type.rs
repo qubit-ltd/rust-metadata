@@ -14,6 +14,7 @@ use serde_json::{
 };
 
 use qubit_metadata::MetadataValueType;
+use std::str::FromStr;
 
 #[test]
 fn of_classifies_all_json_variants() {
@@ -57,6 +58,19 @@ fn display_uses_lowercase_json_type_names() {
     assert_eq!(MetadataValueType::String.to_string(), "string");
     assert_eq!(MetadataValueType::Array.to_string(), "array");
     assert_eq!(MetadataValueType::Object.to_string(), "object");
+}
+
+#[test]
+fn from_str_uses_lowercase_snake_case() {
+    assert_eq!(MetadataValueType::from_str("null").unwrap(), MetadataValueType::Null);
+    assert_eq!(MetadataValueType::from_str("BOOL").unwrap(), MetadataValueType::Bool);
+    assert_eq!(MetadataValueType::from_str("number").unwrap(), MetadataValueType::Number);
+    assert_eq!(MetadataValueType::from_str("object").unwrap(), MetadataValueType::Object);
+}
+
+#[test]
+fn from_str_invalid_value() {
+    assert!(MetadataValueType::from_str("str").is_err());
 }
 
 #[test]

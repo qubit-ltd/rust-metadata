@@ -1,6 +1,6 @@
 [package]
 name = "qubit-metadata"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 rust-version = "1.70"
 authors = ["Haixing Hu <starfish.hu@gmail.com>"]
@@ -27,6 +27,7 @@ name = "qubit_metadata"
 doctest = false
 
 [dependencies]
+parse-display = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

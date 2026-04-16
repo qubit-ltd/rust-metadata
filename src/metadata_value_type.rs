@@ -8,7 +8,7 @@
  ******************************************************************************/
 //! [`MetadataValueType`] — JSON value classification for metadata.
 
-use std::fmt;
+use parse_display::{Display, FromStr as DeriveFromStr};
 
 use serde_json::Value;
 
@@ -18,19 +18,26 @@ use serde_json::Value;
 /// recover the caller's original Rust type. `MetadataValueType` is therefore a
 /// JSON-level classification, analogous to the stricter `data_type()` concept
 /// in `qubit-value`, but tailored to an open-ended JSON model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, DeriveFromStr)]
+#[display(style = "snake_case")]
 pub enum MetadataValueType {
     /// JSON `null`.
+    #[from_str(regex = "(?i)null")]
     Null,
     /// JSON boolean.
+    #[from_str(regex = "(?i)bool")]
     Bool,
     /// JSON number.
+    #[from_str(regex = "(?i)number")]
     Number,
     /// JSON string.
+    #[from_str(regex = "(?i)string")]
     String,
     /// JSON array.
+    #[from_str(regex = "(?i)array")]
     Array,
     /// JSON object.
+    #[from_str(regex = "(?i)object")]
     Object,
 }
 
@@ -53,19 +60,5 @@ impl From<&Value> for MetadataValueType {
     #[inline]
     fn from(value: &Value) -> Self {
         Self::of(value)
-    }
-}
-
-impl fmt::Display for MetadataValueType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let text = match self {
-            Self::Null => "null",
-            Self::Bool => "bool",
-            Self::Number => "number",
-            Self::String => "string",
-            Self::Array => "array",
-            Self::Object => "object",
-        };
-        f.write_str(text)
     }
 }
