@@ -68,6 +68,20 @@ fn and_flattens_children() {
     }
 }
 
+#[test]
+fn and_flattens_rhs_and_node() {
+    let rhs = MetadataFilter::And(vec![
+        MetadataFilter::exists("score"),
+        MetadataFilter::exists("tag"),
+    ]);
+    let f = MetadataFilter::equal("status", "active").unwrap().and(rhs);
+    if let MetadataFilter::And(children) = &f {
+        assert_eq!(children.len(), 3);
+    } else {
+        panic!("expected And node");
+    }
+}
+
 // ── Or ───────────────────────────────────────────────────────────────────────
 
 #[test]
@@ -92,6 +106,20 @@ fn or_flattens_children() {
         .unwrap()
         .or(MetadataFilter::equal("status", "b").unwrap())
         .or(MetadataFilter::equal("status", "active").unwrap());
+    if let MetadataFilter::Or(children) = &f {
+        assert_eq!(children.len(), 3);
+    } else {
+        panic!("expected Or node");
+    }
+}
+
+#[test]
+fn or_flattens_rhs_or_node() {
+    let rhs = MetadataFilter::Or(vec![
+        MetadataFilter::equal("status", "b").unwrap(),
+        MetadataFilter::equal("status", "active").unwrap(),
+    ]);
+    let f = MetadataFilter::equal("status", "a").unwrap().or(rhs);
     if let MetadataFilter::Or(children) = &f {
         assert_eq!(children.len(), 3);
     } else {

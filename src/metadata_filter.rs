@@ -245,36 +245,44 @@ impl MetadataFilter {
 
     // ── Logical combinators ──────────────────────────────────────────────────
 
+    #[inline]
+    fn append_and_children(children: &mut Vec<MetadataFilter>, filter: MetadataFilter) {
+        match filter {
+            MetadataFilter::And(mut nested) => children.append(&mut nested),
+            other => children.push(other),
+        }
+    }
+
+    #[inline]
+    fn append_or_children(children: &mut Vec<MetadataFilter>, filter: MetadataFilter) {
+        match filter {
+            MetadataFilter::Or(mut nested) => children.append(&mut nested),
+            other => children.push(other),
+        }
+    }
+
     /// Combines `self` and `other` with a logical AND.
     ///
-    /// If `self` is already an `And` node the new filter is appended to its
-    /// children rather than creating a new nested node.
+    /// Existing `And` nodes on either side are flattened into one node.
     #[inline]
     #[must_use]
     pub fn and(self, other: MetadataFilter) -> Self {
-        match self {
-            MetadataFilter::And(mut children) => {
-                children.push(other);
-                MetadataFilter::And(children)
-            }
-            _ => MetadataFilter::And(vec![self, other]),
-        }
+        let mut children = Vec::new();
+        Self::append_and_children(&mut children, self);
+        Self::append_and_children(&mut children, other);
+        MetadataFilter::And(children)
     }
 
     /// Combines `self` and `other` with a logical OR.
     ///
-    /// If `self` is already an `Or` node the new filter is appended to its
-    /// children rather than creating a new nested node.
+    /// Existing `Or` nodes on either side are flattened into one node.
     #[inline]
     #[must_use]
     pub fn or(self, other: MetadataFilter) -> Self {
-        match self {
-            MetadataFilter::Or(mut children) => {
-                children.push(other);
-                MetadataFilter::Or(children)
-            }
-            _ => MetadataFilter::Or(vec![self, other]),
-        }
+        let mut children = Vec::new();
+        Self::append_or_children(&mut children, self);
+        Self::append_or_children(&mut children, other);
+        MetadataFilter::Or(children)
     }
 
     /// Wraps `self` in a logical NOT.
