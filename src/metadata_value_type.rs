@@ -8,7 +8,8 @@
  ******************************************************************************/
 //! [`MetadataValueType`] — JSON value classification for metadata.
 
-use parse_display::{Display, FromStr as DeriveFromStr};
+use std::fmt;
+use std::str::FromStr;
 
 use serde_json::Value;
 
@@ -18,26 +19,19 @@ use serde_json::Value;
 /// recover the caller's original Rust type. `MetadataValueType` is therefore a
 /// JSON-level classification, analogous to the stricter `data_type()` concept
 /// in `qubit-value`, but tailored to an open-ended JSON model.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display, DeriveFromStr)]
-#[display(style = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MetadataValueType {
     /// JSON `null`.
-    #[from_str(regex = "(?i)null")]
     Null,
     /// JSON boolean.
-    #[from_str(regex = "(?i)bool")]
     Bool,
     /// JSON number.
-    #[from_str(regex = "(?i)number")]
     Number,
     /// JSON string.
-    #[from_str(regex = "(?i)string")]
     String,
     /// JSON array.
-    #[from_str(regex = "(?i)array")]
     Array,
     /// JSON object.
-    #[from_str(regex = "(?i)object")]
     Object,
 }
 
@@ -60,5 +54,41 @@ impl From<&Value> for MetadataValueType {
     #[inline]
     fn from(value: &Value) -> Self {
         Self::of(value)
+    }
+}
+
+impl fmt::Display for MetadataValueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::Null => "null",
+            Self::Bool => "bool",
+            Self::Number => "number",
+            Self::String => "string",
+            Self::Array => "array",
+            Self::Object => "object",
+        };
+        f.write_str(name)
+    }
+}
+
+impl FromStr for MetadataValueType {
+    type Err = &'static str;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        if text.eq_ignore_ascii_case("null") {
+            Ok(Self::Null)
+        } else if text.eq_ignore_ascii_case("bool") {
+            Ok(Self::Bool)
+        } else if text.eq_ignore_ascii_case("number") {
+            Ok(Self::Number)
+        } else if text.eq_ignore_ascii_case("string") {
+            Ok(Self::String)
+        } else if text.eq_ignore_ascii_case("array") {
+            Ok(Self::Array)
+        } else if text.eq_ignore_ascii_case("object") {
+            Ok(Self::Object)
+        } else {
+            Err("invalid metadata value type")
+        }
     }
 }
