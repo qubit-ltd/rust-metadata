@@ -56,7 +56,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-metadata = "0.2.0"
+qubit-metadata = "0.3.0"
 ```
 
 ## Usage
