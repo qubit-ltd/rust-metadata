@@ -3,51 +3,172 @@
 [![CircleCI](https://circleci.com/gh/qubit-ltd/rs-metadata.svg?style=shield)](https://circleci.com/gh/qubit-ltd/rs-metadata)
 [![Coverage Status](https://coveralls.io/repos/github/qubit-ltd/rs-metadata/badge.svg?branch=main)](https://coveralls.io/github/qubit-ltd/rs-metadata?branch=main)
 [![Crates.io](https://img.shields.io/crates/v/qubit-metadata.svg?color=blue)](https://crates.io/crates/qubit-metadata)
-[![Rust](https://img.shields.io/badge/rust-1.93+-blue.svg?logo=rust)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.94+-blue.svg?logo=rust)](https://www.rust-lang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![English Document](https://img.shields.io/badge/Document-English-blue.svg)](README.md)
 
-适用于 Rust 的通用、类型安全且可扩展的元数据模型。
+适用于 Rust 的通用、类型安全元数据模型。
 
 ## 概述
 
-`qubit-metadata` 提供 `Metadata` 类型，它是一个结构化键值存储，适合在各种场景下为
-数据模型附加任意类型、可序列化的注解信息。常见用法包括：
+`qubit-metadata` 提供 `Metadata` 类型，用于给数据对象附加类型明确的扩展字段，
+避免把所有辅助字段都写死进核心结构体。典型场景包括：
 
-- 为领域实体（消息、记录、事件等）附加上下文信息
-- 在不污染核心模型的前提下携带 provider 或适配器的专有字段
-- 基于带注解的数据（如向量存储记录）构建查询过滤条件
-- 在服务或库边界之间透传不透明的元数据
+- 文档入库：为每个分片保留 `file_id`、`chunk_index`、`language`、`source`、`confidence`。
+- 向量检索：保存 `tenant_id`、`doc_type`、`created_at`、`score`、`acl_group` 等后续会进入向量数据库 metadata column 或过滤条件的字段。
+- 消息与事件链路：透传 `trace_id`、`request_id`、`tenant_id`、`route`、重试信息等上下文。
+- 外部服务集成：记录模型版本、延迟、计费标签、请求编号等便于诊断和统计的紧凑字段。
 
-它并不是普通的 `HashMap<String, String>`，而是一个面向领域模型的结构化扩展点：
-底层使用 `serde_json::Value` 存储，并提供类型安全的访问方式以及一流的 `serde`
-支持。
+`Metadata` 底层使用 `qubit_value::Value`，因此标量类型是明确的：`i64` 和
+`u32` 不会混成一个模糊的 number，`f64` 和 `String` 也不会混淆。如果确实需要嵌套
+结构，可以显式存 `Value::Json`；但常见的文档元信息、向量库 metadata、链路上下文，
+通常都是扁平字段集合。
 
 ## 设计目标
 
-- **类型安全**：基于 `serde_json::Value` 提供类型化的 get/set API
-- **通用性**：不引入领域特定假设，适用于任何 Rust 项目
-- **可扩展性**：提供结构化扩展点，而不是把所有内容都塞进字符串字典
-- **序列化**：为 JSON 交换提供一流的 `serde` 支持
-- **过滤能力**：`MetadataFilter` 用于对 `Metadata` 做可组合的谓词判断
+- **类型明确**：用 `qubit_value::Value` 保留具体运行时类型。
+- **构造方便**：同时支持可变的 `set()` 和链式的 `with()`。
+- **可选 schema**：用 `MetadataSchema` 校验字段名、必填字段和具体 `DataType`。
+- **过滤器 builder**：通过 builder 构造不可变的 `MetadataFilter`。
+- **序列化友好**：metadata、schema、filter 都支持 `serde`，便于配置、存储和跨服务传输。
 
 ## 特性
 
-### 🗂 **`Metadata`**
+### 1) 类型化 metadata 容器
 
-- 使用 `String` 作为键、`serde_json::Value` 作为值的有序键值存储
-- 提供两层类型化访问接口：简洁的 `get::<T>()` / `set()`，以及显式的 `try_get::<T>()` / `try_set()`
-- 可通过 `MetadataValueType` 轻量检查 JSON 值类型
-- 支持合并、扩展和迭代
-- 完整支持 `serde` 序列化 / 反序列化
-- 自动派生 `Debug`、`Clone`、`PartialEq`、`Default`
+`Metadata` 是有序的 `String -> Value` 映射，支持 `get`、`set`、`try_get`、
+`try_set`、`with`、迭代、合并、保留和 `BTreeMap<String, Value>` 转换。
 
-### 🔍 **`MetadataFilter`**
+```rust
+use qubit_metadata::Metadata;
 
-- 以条件树描述对元数据的约束，通过 `matches(&metadata)` 求值
-- 支持比较、存在性、集合成员等叶子条件，以及逻辑与 / 或 / 非组合
-- 实现 `Serialize` / `Deserialize`，可将过滤条件以 JSON 形式持久化或跨服务传递
-- 适用于内存过滤、检索谓词，或任何需要可移植元数据谓词的场景
+let meta = Metadata::new()
+    .with("author", "alice")
+    .with("priority", 3_i64)
+    .with("reviewed", true);
+
+assert_eq!(meta.get::<String>("author").as_deref(), Some("alice"));
+assert_eq!(meta.try_get::<i64>("priority").unwrap(), 3);
+```
+
+### 2) 用 schema 做校验和存储规划
+
+`MetadataSchema` 使用 `qubit_common::DataType`。当存储后端要求预先声明 metadata 字段时，
+schema 可以直接作为字段定义来源；在构造 filter 时，也可以提前校验字段、操作符和
+过滤值类型是否匹配。
+
+```rust
+use qubit_common::DataType;
+use qubit_metadata::{Metadata, MetadataSchema};
+
+let schema = MetadataSchema::builder()
+    .required("tenant_id", DataType::String)
+    .required("score", DataType::Int64)
+    .optional("source", DataType::String)
+    .build();
+
+let meta = Metadata::new()
+    .with("tenant_id", "acme")
+    .with("score", 42_i64);
+
+schema.validate(&meta).unwrap();
+```
+
+### 3) builder 构造不可变 filter
+
+`MetadataFilter::builder()` 返回 builder，调用 `build()` 后得到不可变 filter。
+如果已有 schema，可以用 `build_checked(&schema)` 在构建时校验字段是否存在、操作符
+是否适用于字段类型、过滤值类型是否兼容。
+
+```rust
+use qubit_common::DataType;
+use qubit_metadata::{Metadata, MetadataFilter, MetadataSchema};
+
+let schema = MetadataSchema::builder()
+    .required("status", DataType::String)
+    .required("score", DataType::Int64)
+    .build();
+
+let filter = MetadataFilter::builder()
+    .eq("status", "active")
+    .and_ge("score", 10)
+    .build_checked(&schema)
+    .unwrap();
+
+let meta = Metadata::new()
+    .with("status", "active")
+    .with("score", 42_i64);
+
+assert!(filter.matches(&meta));
+```
+
+### 4) 过滤 DSL
+
+| 方法 | 含义 |
+|------|------|
+| `eq` / `ne` | 相等 / 不相等 |
+| `gt` / `ge` / `lt` / `le` | 数值范围或字符串字典序比较 |
+| `exists` / `not_exists` | 键存在 / 不存在 |
+| `in_set` / `not_in_set` | 集合包含 / 排除 |
+| `and_*` / `or_*` | 用明确连接词追加一个谓词 |
+| `and` / `or` / `and_not` / `or_not` | 追加分组子表达式 |
+| `not` | 对当前表达式取反 |
+
+分组子表达式使用闭包构造。闭包会收到一个新的 builder，闭包返回的表达式会作为一个
+整体追加到外层表达式中：
+
+```rust
+use qubit_metadata::{Metadata, MetadataFilter};
+
+let filter = MetadataFilter::builder()
+    .eq("status", "active")
+    .and(|g| g.ge("score", 80).or_eq("tag", "rust"))
+    .build();
+
+let meta = Metadata::new()
+    .with("status", "active")
+    .with("score", 42_i64)
+    .with("tag", "rust");
+
+assert!(filter.matches(&meta));
+```
+
+上面的表达式等价于：
+
+```text
+status == "active" AND (score >= 80 OR tag == "rust")
+```
+
+如果整个分组需要取反，可以使用 `and_not` 或 `or_not`：
+
+```rust
+let filter = MetadataFilter::builder()
+    .eq("status", "active")
+    .and_not(|g| g.ge("score", 80).or_eq("tag", "java"))
+    .build();
+```
+
+负向谓词遇到缺失键时的行为由 `MissingKeyPolicy` 控制。整数、浮点数混合比较时的精度
+策略由 `NumberComparisonPolicy` 控制。
+
+## 错误处理
+
+当调用方需要明确区分“键不存在”和“类型不匹配”时，使用 `try_get` 或 schema 校验：
+
+```rust
+use qubit_common::DataType;
+use qubit_metadata::{Metadata, MetadataError};
+
+let meta = Metadata::new().with("answer", "forty-two");
+
+match meta.try_get::<i64>("answer") {
+    Err(MetadataError::TypeMismatch { expected, actual, .. }) => {
+        assert_eq!(expected, DataType::Int64);
+        assert_eq!(actual, DataType::String);
+    }
+    other => panic!("unexpected result: {other:?}"),
+}
+```
 
 ## 安装
 
@@ -56,117 +177,6 @@
 ```toml
 [dependencies]
 qubit-metadata = "0.3.0"
-```
-
-## 用法示例
-
-```rust
-use qubit_metadata::Metadata;
-
-let mut meta = Metadata::new();
-meta.set("author", "alice");
-meta.set("priority", 3_i64);
-meta.set("reviewed", true);
-
-// 便捷 API：写法简洁，失败时返回 `None`。
-let author: Option<String> = meta.get("author");
-assert_eq!(author.as_deref(), Some("alice"));
-
-// 显式 API：保留具体失败原因。
-let priority = meta.try_get::<i64>("priority").unwrap();
-assert_eq!(priority, 3);
-```
-
-## MetadataFilter（元数据过滤）
-
-`MetadataFilter` 表示针对**一份** [`Metadata`](https://docs.rs/qubit-metadata/latest/qubit_metadata/struct.Metadata.html) 是否成立的谓词。先由若干叶子条件与逻辑节点拼成一棵树，再对目标 `Metadata` 调用 [`matches`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MetadataFilter.html#method.matches) 得到 `bool`。
-
-### 叶子构造方法
-
-每个叶子只针对一个键；写入的值与 `Metadata::set` 一样，经 `Serialize` 转为 [`serde_json::Value`](https://docs.rs/serde_json/latest/serde_json/enum.Value.html) 再参与比较：
-
-| 方法 | 含义 |
-|------|------|
-| `equal` / `not_equal` | 键对应 JSON 值与给定值相等 / 不相等 |
-| `greater` / `greater_equal` / `less` / `less_equal` | 有序比较（数值大小、字符串字典序，以及实现中支持的混合类型规则） |
-| `exists` / `not_exists` | 键存在 / 不存在 |
-| `in_values` / `not_in_values` | 键的值是否属于给定集合 |
-
-### 逻辑组合
-
-- **`and`** — 所有子过滤器都必须匹配。若当前节点已是 `And`，新条件会**追加**到同一层，避免无谓嵌套。
-- **`or`** — 至少一个子过滤器匹配（同样会扁平化追加）。
-- **`not`** — 对子树取反。也可通过标准库的 [`Not`](https://doc.rust-lang.org/std/ops/trait.Not.html) 对 `MetadataFilter` 使用 `!filter`。
-
-边界行为：**空的** `And` 对任意 `Metadata` 为真；**空的** `Or` 对任意 `Metadata` 为假。
-
-### 求值
-
-调用 `filter.matches(&meta)` 即可。某个键不存在时，各类叶子条件是否匹配，由 [`Condition`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.Condition.html) 的语义决定。
-
-默认情况下，缺失键会让 `not_equal` 和 `not_in_values` 返回匹配（兼容历史行为）。如果需要严格语义，可调用 [`matches_with_missing_key_policy`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MetadataFilter.html#method.matches_with_missing_key_policy) 并传入 [`MissingKeyPolicy::NoMatch`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MissingKeyPolicy.html)。
-
-对数值范围比较而言，整数/浮点混合比较默认采用“保守且尽量不丢精度”的策略。若你更希望“允许有损但可比较”的行为，可调用 [`matches_with_policies`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.MetadataFilter.html#method.matches_with_policies) 并传入 [`NumberComparisonPolicy::Approximate`](https://docs.rs/qubit-metadata/latest/qubit_metadata/enum.NumberComparisonPolicy.html)。
-
-### 序列化
-
-`MetadataFilter` 实现了 `Serialize` / `Deserialize`，可将过滤条件存入配置、数据库或通过 JSON API 与元数据模型一并交换。
-
-### 示例
-
-**组合 AND — 同时满足：**
-
-```rust
-use qubit_metadata::{Metadata, MetadataFilter};
-
-let mut meta = Metadata::new();
-meta.set("status", "active");
-meta.set("score", 42_i64);
-
-let filter = MetadataFilter::equal("status", "active")
-    .unwrap()
-    .and(MetadataFilter::greater_equal("score", 10_i64).unwrap());
-
-assert!(filter.matches(&meta));
-```
-
-**OR、集合成员与取反：**
-
-```rust
-use qubit_metadata::{Metadata, MetadataFilter};
-
-let mut meta = Metadata::new();
-meta.set("region", "eu");
-meta.set("tier", "pro");
-
-let filter = MetadataFilter::in_values("region", ["eu", "us"])
-    .unwrap()
-    .or(MetadataFilter::equal("tier", "enterprise").unwrap());
-
-assert!(filter.matches(&meta));
-
-let hide_drafts = MetadataFilter::equal("status", "draft").unwrap().not();
-// 等价于：!MetadataFilter::equal("status", "draft").unwrap()
-assert!(hide_drafts.matches(&meta));
-```
-
-## 错误处理
-
-如果调用方需要区分“键不存在”和“类型不匹配”，建议优先使用显式 API，
-并检查 `MetadataError`：
-
-```rust
-use qubit_metadata::{Metadata, MetadataError, MetadataValueType};
-
-let mut meta = Metadata::new();
-meta.set("answer", "forty-two");
-
-match meta.try_get::<i64>("answer") {
-    Err(MetadataError::DeserializationError { actual, .. }) => {
-        assert_eq!(actual, MetadataValueType::String);
-    }
-    other => panic!("unexpected result: {other:?}"),
-}
 ```
 
 ## 许可证
