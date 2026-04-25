@@ -12,5 +12,5 @@ use qubit_metadata::MetadataResult;
 #[test]
 fn metadata_result_alias_compiles() {
     let value: MetadataResult<i32> = Ok(7);
-    assert_eq!(value.unwrap(), 7);
+    assert!(matches!(value, Ok(7)));
 }
