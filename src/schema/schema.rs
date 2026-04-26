@@ -14,10 +14,8 @@ use qubit_common::DataType;
 use qubit_value::Value;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Condition, Metadata, MetadataError, MetadataField, MetadataFilter, MetadataResult,
-    MetadataSchemaBuilder, UnknownFieldPolicy,
-};
+use crate::schema::{MetadataField, MetadataSchemaBuilder, UnknownFieldPolicy};
+use crate::{Condition, Metadata, MetadataError, MetadataFilter, MetadataResult};
 
 /// Schema for metadata fields.
 ///

@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 
 use qubit_common::DataType;
 
-use crate::{MetadataField, MetadataSchema, UnknownFieldPolicy};
+use crate::schema::{MetadataField, MetadataSchema, UnknownFieldPolicy};
 
 /// Builder for [`MetadataSchema`].
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

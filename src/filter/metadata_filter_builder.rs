@@ -7,12 +7,13 @@
  *
  ******************************************************************************/
 //! [`MetadataFilterBuilder`] — fluent builder for composable filters.
-
 use qubit_value::{Value, ValueConstructor};
 
+use super::filter_expr::FilterExpr;
+use super::metadata_filter::MetadataFilter;
 use crate::{
-    Condition, FilterMatchOptions, MetadataFilter, MetadataResult, MetadataSchema,
-    MissingKeyPolicy, NumberComparisonPolicy, metadata_filter::FilterExpr,
+    Condition, FilterMatchOptions, MetadataResult, MetadataSchema, MissingKeyPolicy,
+    NumberComparisonPolicy,
 };
 
 /// Builder for [`MetadataFilter`].
