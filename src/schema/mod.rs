@@ -13,11 +13,10 @@
 
 mod builder;
 mod field;
-mod schema;
+mod definition;
 mod unknown_field_policy;
 
 pub use builder::MetadataSchemaBuilder;
 pub use field::MetadataField;
-pub use schema::MetadataSchema;
+pub use definition::MetadataSchema;
 pub use unknown_field_policy::UnknownFieldPolicy;
-
