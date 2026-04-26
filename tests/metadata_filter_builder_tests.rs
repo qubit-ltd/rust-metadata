@@ -6,7 +6,7 @@
  *    All rights reserved.
  *
  ******************************************************************************/
-
+//! Unit tests for [`qubit_metadata::MetadataFilterBuilder`] default behavior.
 use qubit_metadata::MetadataFilterBuilder;
 
 #[test]
