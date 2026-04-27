@@ -19,7 +19,8 @@ fn filter_serde_round_trip() {
         .or_not(|g| g.exists("tag").and_eq("tag", "java"))
         .missing_key_policy(MissingKeyPolicy::NoMatch)
         .number_comparison_policy(NumberComparisonPolicy::Approximate)
-        .build();
+        .build()
+        .unwrap();
 
     let json = serde_json::to_string(&f).unwrap();
     let restored: MetadataFilter = serde_json::from_str(&json).unwrap();
@@ -32,7 +33,8 @@ fn filter_serde_uses_versioned_wire_format() {
     let f = MetadataFilter::builder()
         .eq("status", "active")
         .and_ge("score", 10_i64)
-        .build();
+        .build()
+        .unwrap();
 
     let json = serde_json::to_value(&f).unwrap();
     assert_eq!(
@@ -81,7 +83,8 @@ fn filter_serde_round_trips_all_condition_ops() {
         .and_not_in_set("status", ["archived"])
         .and_exists("verified")
         .and_not_exists("missing")
-        .build();
+        .build()
+        .unwrap();
 
     let json = serde_json::to_string(&f).unwrap();
     for op in [
@@ -204,4 +207,19 @@ fn filter_deserialize_rejects_unsupported_wire_version() {
     .to_string();
 
     assert!(error.contains("unsupported MetadataFilter wire format version 2"));
+}
+
+#[test]
+fn filter_deserialize_rejects_empty_wire_group() {
+    let error = serde_json::from_value::<MetadataFilter>(json!({
+        "version": 1,
+        "expr": {
+            "type": "and",
+            "children": []
+        }
+    }))
+    .unwrap_err()
+    .to_string();
+
+    assert!(error.contains("empty 'and' filter group is not allowed"));
 }

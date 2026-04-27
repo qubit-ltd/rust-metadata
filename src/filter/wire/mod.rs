@@ -12,4 +12,5 @@ mod condition;
 mod expr;
 mod metadata_filter;
 
+pub(crate) use condition::ConditionWire;
 pub(crate) use metadata_filter::MetadataFilterWire;

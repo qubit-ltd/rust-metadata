@@ -14,7 +14,7 @@ use qubit_common::{DataType, DataTypeOf};
 use qubit_value::{Value, ValueConstructor, ValueConverter};
 use serde::{Deserialize, Serialize};
 
-use crate::{MetadataError, MetadataResult};
+use crate::{MetadataError, MetadataResult, MetadataSchema};
 
 /// A structured, ordered, typed key-value store for metadata fields.
 ///
@@ -126,19 +126,47 @@ impl Metadata {
         self.0.insert(key.to_string(), to_value(value))
     }
 
-    /// Inserts a typed value under `key`, preserving the `try_*` API shape.
+    /// Inserts a typed value after validating it against `schema`.
     ///
     /// # Errors
     ///
-    /// This method currently cannot fail for supported [`Value`] constructor
-    /// types. It returns `Result` for symmetry with [`Metadata::try_get`] and to
-    /// keep validation-oriented call sites explicit.
+    /// Returns [`MetadataError::UnknownField`] when `key` is rejected by the
+    /// schema, or [`MetadataError::TypeMismatch`] when the constructed value's
+    /// concrete type does not match the schema field type.
     #[inline]
-    pub fn try_set<T>(&mut self, key: &str, value: T) -> MetadataResult<Option<Value>>
+    pub fn set_checked<T>(
+        &mut self,
+        schema: &MetadataSchema,
+        key: &str,
+        value: T,
+    ) -> MetadataResult<Option<Value>>
     where
         Value: ValueConstructor<T>,
     {
-        Ok(self.set(key, value))
+        let value = to_value(value);
+        schema.validate_entry(key, &value)?;
+        Ok(self.set_raw(key, value))
+    }
+
+    /// Returns a new metadata object with a typed value validated and inserted.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::UnknownField`] when `key` is rejected by the
+    /// schema, or [`MetadataError::TypeMismatch`] when the constructed value's
+    /// concrete type does not match the schema field type.
+    #[inline]
+    pub fn with_checked<T>(
+        mut self,
+        schema: &MetadataSchema,
+        key: &str,
+        value: T,
+    ) -> MetadataResult<Self>
+    where
+        Value: ValueConstructor<T>,
+    {
+        self.set_checked(schema, key, value)?;
+        Ok(self)
     }
 
     /// Returns a new metadata object with `key` set to `value`.

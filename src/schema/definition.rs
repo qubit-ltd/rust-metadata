@@ -11,6 +11,7 @@
 use std::collections::BTreeMap;
 
 use qubit_common::DataType;
+use qubit_value::Value;
 use serde::{Deserialize, Serialize};
 
 use crate::schema::{MetadataField, MetadataSchemaBuilder, UnknownFieldPolicy};
@@ -94,24 +95,25 @@ impl MetadataSchema {
         }
 
         for (key, value) in meta.iter() {
-            match self.field(key) {
-                Some(field) if field.data_type() != value.data_type() => {
-                    return Err(MetadataError::type_mismatch(
-                        key,
-                        field.data_type(),
-                        value.data_type(),
-                    ));
-                }
-                Some(_) => {}
-                None if matches!(self.unknown_field_policy, UnknownFieldPolicy::Reject) => {
-                    return Err(MetadataError::UnknownField {
-                        key: key.to_string(),
-                    });
-                }
-                None => {}
-            }
+            self.validate_entry(key, value)?;
         }
         Ok(())
+    }
+
+    /// Validates one metadata entry against this schema.
+    pub(crate) fn validate_entry(&self, key: &str, value: &Value) -> MetadataResult<()> {
+        match self.field(key) {
+            Some(field) if field.data_type() != value.data_type() => Err(
+                MetadataError::type_mismatch(key, field.data_type(), value.data_type()),
+            ),
+            Some(_) => Ok(()),
+            None if matches!(self.unknown_field_policy, UnknownFieldPolicy::Reject) => {
+                Err(MetadataError::UnknownField {
+                    key: key.to_string(),
+                })
+            }
+            None => Ok(()),
+        }
     }
 }
 

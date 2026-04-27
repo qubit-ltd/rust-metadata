@@ -37,7 +37,8 @@
 ### 1) 类型化 metadata 容器
 
 `Metadata` 是有序的 `String -> Value` 映射，支持 `get`、`set`、`try_get`、
-`try_set`、`with`、迭代、合并、保留和 `BTreeMap<String, Value>` 转换。
+带 schema 校验的 `set_checked` / `with_checked`、链式 `with`、迭代、合并、
+保留和 `BTreeMap<String, Value>` 转换。
 
 ```rust
 use qubit_metadata::Metadata;
@@ -76,9 +77,10 @@ schema.validate(&meta).unwrap();
 
 ### 3) builder 构造不可变 filter
 
-`MetadataFilter::builder()` 返回 builder，调用 `build()` 后得到不可变 filter。
-如果已有 schema，可以用 `build_checked(&schema)` 在构建时校验字段是否存在、操作符
-是否适用于字段类型、过滤值类型是否兼容。
+`MetadataFilter::builder()` 返回 builder，调用 `build()` 后得到
+`Result<MetadataFilter, MetadataError>`。这样空分组这类结构非法的表达式会明确报错，
+不会静默变成 no-op。如果已有 schema，可以用 `build_checked(&schema)` 在构建时校验字段
+是否存在、操作符是否适用于字段类型、过滤值类型是否兼容。
 
 ```rust
 use qubit_common::DataType;
@@ -123,7 +125,8 @@ use qubit_metadata::{Metadata, MetadataFilter};
 let filter = MetadataFilter::builder()
     .eq("status", "active")
     .and(|g| g.ge("score", 80).or_eq("tag", "rust"))
-    .build();
+    .build()
+    .unwrap();
 
 let meta = Metadata::new()
     .with("status", "active")
@@ -145,18 +148,27 @@ status == "active" AND (score >= 80 OR tag == "rust")
 let filter = MetadataFilter::builder()
     .eq("status", "active")
     .and_not(|g| g.ge("score", 80).or_eq("tag", "java"))
-    .build();
+    .build()
+    .unwrap();
 ```
 
 负向谓词遇到缺失键时的行为由 `MissingKeyPolicy` 控制。整数、浮点数混合比较时的精度
 策略由 `NumberComparisonPolicy` 控制。
 
+分组表达式必须至少包含一个谓词。例如 `and(|g| g)` 和 `or_not(|g| g)` 会被
+`build()` 拒绝，因为空分组通常代表调用方构造条件时漏传了约束。
+
+schema 校验 filter 时，所有数值型 `DataType` 之间视为兼容。这是有意放松：
+调用方构造过滤条件时经常只能给出方便的数值字面量，未必能精确匹配存储字段的具体
+整数/浮点类型。实际调用 `MetadataSchema::validate(&metadata)` 校验 metadata 时仍然严格：
+metadata 中存储的值必须和 schema 声明的具体字段类型一致。
+
 ### 5) 版本化 filter 序列化格式
 
 `MetadataFilter` 序列化后使用明确的 wire format，包含 `version`、`expr` 和
 `options` 字段。表达式节点使用 `type`，条件节点使用稳定的 `op` 操作符名，例如
-`eq`、`ge`、`in` 和 `not_exists`。内部表达式树不属于序列化契约。
-新的序列化输出始终使用版本化格式。
+`eq`、`ge`、`in` 和 `not_exists`。单独序列化 `Condition` 时也使用同一套条件
+wire 表示。内部表达式树不属于序列化契约。新的序列化输出始终使用版本化格式。
 
 ## 错误处理
 

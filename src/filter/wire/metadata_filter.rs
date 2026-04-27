@@ -39,10 +39,8 @@ impl MetadataFilterWire {
                 self.version, METADATA_FILTER_WIRE_VERSION
             ));
         }
-        Ok(MetadataFilter::new(
-            self.expr.map(FilterExprWire::into_expr),
-            self.options,
-        ))
+        let expr = self.expr.map(FilterExprWire::into_expr).transpose()?;
+        Ok(MetadataFilter::new(expr, self.options))
     }
 }
 

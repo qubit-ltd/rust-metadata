@@ -20,8 +20,8 @@ use crate::{
 /// An immutable, composable filter expression over [`Metadata`].
 ///
 /// Construct filters with [`MetadataFilter::builder`]. An empty builder builds a
-/// match-all filter, which makes the default behavior explicit while keeping the
-/// built filter immutable.
+/// match-all filter, while structurally invalid expressions such as empty groups
+/// are rejected by [`MetadataFilterBuilder::build`].
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct MetadataFilter {
     /// Root expression tree. `None` means match all.

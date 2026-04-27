@@ -13,14 +13,15 @@ use std::cmp::Ordering;
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
 use qubit_value::Value;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::missing_key_policy::MissingKeyPolicy;
 use super::number_comparison_policy::NumberComparisonPolicy;
+use super::wire::ConditionWire;
 use crate::Metadata;
 
 /// A single comparison operator applied to one metadata key.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Condition {
     /// Key equals value.
     Equal {
@@ -88,6 +89,24 @@ pub enum Condition {
         /// The metadata key.
         key: String,
     },
+}
+
+impl Serialize for Condition {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        ConditionWire::from(self).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Condition {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(ConditionWire::deserialize(deserializer)?.into_condition())
+    }
 }
 
 impl Condition {

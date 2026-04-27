@@ -57,6 +57,11 @@ pub enum MetadataError {
         /// Human-readable validation message.
         message: String,
     },
+    /// A filter expression is structurally invalid.
+    InvalidFilterExpression {
+        /// Human-readable validation message.
+        message: String,
+    },
 }
 
 impl MetadataError {
@@ -123,6 +128,9 @@ impl fmt::Display for MetadataError {
                 f,
                 "Metadata filter operator '{operator}' is invalid for key '{key}' with type {data_type}: {message}"
             ),
+            Self::InvalidFilterExpression { message } => {
+                write!(f, "Metadata filter expression is invalid: {message}")
+            }
         }
     }
 }

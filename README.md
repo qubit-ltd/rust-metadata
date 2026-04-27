@@ -39,8 +39,8 @@ field sets, which keeps schema validation and filter construction predictable.
 ### 1) Typed metadata storage
 
 `Metadata` is an ordered `String -> Value` map. It supports typed `get`, `set`,
-`try_get`, `try_set`, `with`, iteration, merge, retain, and conversion to/from
-`BTreeMap<String, Value>`.
+`try_get`, schema-checked `set_checked` / `with_checked`, fluent `with`,
+iteration, merge, retain, and conversion to/from `BTreeMap<String, Value>`.
 
 ```rust
 use qubit_metadata::Metadata;
@@ -79,9 +79,11 @@ schema.validate(&meta).unwrap();
 
 ### 3) Immutable filters built by builder
 
-`MetadataFilter::builder()` creates a builder. Calling `build()` returns an
-immutable filter. `build_checked(&schema)` also validates referenced fields,
-operator compatibility, and filter value types.
+`MetadataFilter::builder()` creates a builder. Calling `build()` returns a
+`Result<MetadataFilter, MetadataError>` so structurally invalid expressions such
+as empty grouped expressions are reported instead of silently becoming no-ops.
+`build_checked(&schema)` also validates referenced fields, operator
+compatibility, and filter value types.
 
 ```rust
 use qubit_common::DataType;
@@ -126,7 +128,8 @@ use qubit_metadata::{Metadata, MetadataFilter};
 let filter = MetadataFilter::builder()
     .eq("status", "active")
     .and(|g| g.ge("score", 80).or_eq("tag", "rust"))
-    .build();
+    .build()
+    .unwrap();
 
 let meta = Metadata::new()
     .with("status", "active")
@@ -148,20 +151,32 @@ Use `and_not` or `or_not` when the whole group should be negated:
 let filter = MetadataFilter::builder()
     .eq("status", "active")
     .and_not(|g| g.ge("score", 80).or_eq("tag", "java"))
-    .build();
+    .build()
+    .unwrap();
 ```
 
 Missing-key behavior for negative predicates is controlled by
 `MissingKeyPolicy`. Mixed numeric comparison behavior is controlled by
 `NumberComparisonPolicy`.
 
+Grouped expressions must contain at least one predicate. For example,
+`and(|g| g)` and `or_not(|g| g)` are rejected by `build()` because an empty group
+is usually a caller bug.
+
+When a schema validates filters, all numeric `DataType` variants are considered
+compatible with each other. This intentionally lets callers write convenient
+numeric literals in filter conditions even when they cannot precisely mirror the
+storage field type. Actual `MetadataSchema::validate(&metadata)` remains strict:
+stored metadata values must use the concrete field type declared by the schema.
+
 ### 5) Versioned filter serde format
 
 Serialized `MetadataFilter` values use an explicit wire format with `version`,
 `expr`, and `options` fields. Expression nodes use `type`, and condition nodes
 use stable operator names in `op` such as `eq`, `ge`, `in`, and `not_exists`.
-The internal expression tree is not part of the serialization contract.
-New serialization always emits the versioned format.
+Serialized `Condition` values use the same condition wire representation. The
+internal expression tree is not part of the serialization contract. New
+serialization always emits the versioned format.
 
 ## Error Handling
 

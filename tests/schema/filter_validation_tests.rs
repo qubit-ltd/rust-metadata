@@ -81,6 +81,32 @@ fn schema_validate_filter_accepts_not_equal_condition() {
 }
 
 #[test]
+fn schema_validate_filter_reports_ne_operator_for_incompatible_value() {
+    let schema = MetadataSchema::builder()
+        .required("status", DataType::String)
+        .build();
+    let error = MetadataFilter::builder()
+        .ne("status", 1_i64)
+        .build_checked(&schema)
+        .unwrap_err();
+
+    match error {
+        MetadataError::InvalidFilterOperator {
+            key,
+            operator,
+            data_type,
+            message,
+        } => {
+            assert_eq!(key, "status");
+            assert_eq!(operator, "ne");
+            assert_eq!(data_type, DataType::String);
+            assert!(message.contains("not compatible"));
+        }
+        other => panic!("expected InvalidFilterOperator, got {other:?}"),
+    }
+}
+
+#[test]
 fn schema_validate_filter_rejects_incompatible_value_predicate() {
     let schema = MetadataSchema::builder()
         .required("status", DataType::String)
@@ -142,7 +168,7 @@ fn schema_validate_filter_rejects_incompatible_not_in_value() {
             message,
         } => {
             assert_eq!(key, "status");
-            assert_eq!(operator, "in_set");
+            assert_eq!(operator, "not_in_set");
             assert_eq!(data_type, DataType::String);
             assert!(message.contains("not compatible"));
         }

@@ -13,7 +13,8 @@ use super::condition::Condition;
 use super::filter_expr::FilterExpr;
 use super::metadata_filter::MetadataFilter;
 use crate::{
-    FilterMatchOptions, MetadataResult, MetadataSchema, MissingKeyPolicy, NumberComparisonPolicy,
+    FilterMatchOptions, MetadataError, MetadataResult, MetadataSchema, MissingKeyPolicy,
+    NumberComparisonPolicy,
 };
 
 /// Builder for [`MetadataFilter`].
@@ -27,26 +28,38 @@ pub struct MetadataFilterBuilder {
     pub(crate) expr: Option<FilterExpr>,
     /// Match policies copied into the built filter.
     pub(crate) options: FilterMatchOptions,
+    /// First structural error found while building grouped expressions.
+    pub(crate) error: Option<MetadataError>,
+    /// Whether at least one leaf condition has been added to this builder.
+    pub(crate) has_condition: bool,
 }
 
 impl MetadataFilterBuilder {
     /// Builds an immutable [`MetadataFilter`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MetadataError::InvalidFilterExpression`] when the builder contains
+    /// a structurally invalid expression such as an empty grouped expression.
     #[inline]
-    #[must_use]
-    pub fn build(self) -> MetadataFilter {
-        MetadataFilter::new(self.expr, self.options)
+    pub fn build(self) -> MetadataResult<MetadataFilter> {
+        if let Some(error) = self.error {
+            return Err(error);
+        }
+        Ok(MetadataFilter::new(self.expr, self.options))
     }
 
     /// Builds an immutable filter and validates it against `schema`.
     ///
     /// # Errors
     ///
-    /// Returns an error when the filter references unknown schema fields, uses
-    /// range operators on non-comparable field types, or compares a field with an
-    /// incompatible value type.
+    /// Returns an error when the filter expression is structurally invalid, the
+    /// filter references unknown schema fields, uses range operators on
+    /// non-comparable field types, or compares a field with an incompatible value
+    /// type.
     #[inline]
     pub fn build_checked(self, schema: &MetadataSchema) -> MetadataResult<MetadataFilter> {
-        let filter = self.build();
+        let filter = self.build()?;
         schema.validate_filter(&filter)?;
         Ok(filter)
     }
@@ -432,8 +445,8 @@ impl MetadataFilterBuilder {
     where
         F: FnOnce(Self) -> Self,
     {
-        let group = build(Self::default()).expr;
-        self.and_expr(group)
+        let group = build(Self::default());
+        self.and_group("and", group)
     }
 
     /// Appends a grouped expression with OR.
@@ -446,8 +459,8 @@ impl MetadataFilterBuilder {
     where
         F: FnOnce(Self) -> Self,
     {
-        let group = build(Self::default()).expr;
-        self.or_expr(group)
+        let group = build(Self::default());
+        self.or_group("or", group)
     }
 
     /// Appends a negated grouped expression with AND.
@@ -457,8 +470,8 @@ impl MetadataFilterBuilder {
     where
         F: FnOnce(Self) -> Self,
     {
-        let group = build(Self::default()).expr;
-        self.and_expr(Self::negate_expr(group))
+        let group = build(Self::default());
+        self.and_group("and_not", group.negate_non_empty_group())
     }
 
     /// Appends a negated grouped expression with OR.
@@ -468,8 +481,8 @@ impl MetadataFilterBuilder {
     where
         F: FnOnce(Self) -> Self,
     {
-        let group = build(Self::default()).expr;
-        self.or_expr(Self::negate_expr(group))
+        let group = build(Self::default());
+        self.or_group("or_not", group.negate_non_empty_group())
     }
 
     /// Negates the entire builder expression.
@@ -516,13 +529,74 @@ impl MetadataFilterBuilder {
     /// Appends a condition with logical AND.
     #[inline]
     fn and_condition(self, condition: Condition) -> Self {
-        self.and_expr(Some(FilterExpr::Condition(condition)))
+        let mut builder = self.and_expr(Some(FilterExpr::Condition(condition)));
+        builder.has_condition = true;
+        builder
     }
 
     /// Appends a condition with logical OR.
     #[inline]
     fn or_condition(self, condition: Condition) -> Self {
-        self.or_expr(Some(FilterExpr::Condition(condition)))
+        let mut builder = self.or_expr(Some(FilterExpr::Condition(condition)));
+        builder.has_condition = true;
+        builder
+    }
+
+    /// Combines a grouped expression with logical AND.
+    #[inline]
+    fn and_group(self, operator: &'static str, group: Self) -> Self {
+        self.combine_group(operator, group, Self::and_expr)
+    }
+
+    /// Combines a grouped expression with logical OR.
+    #[inline]
+    fn or_group(self, operator: &'static str, group: Self) -> Self {
+        self.combine_group(operator, group, Self::or_expr)
+    }
+
+    /// Combines a grouped expression and records empty-group errors.
+    #[inline]
+    fn combine_group(
+        self,
+        operator: &'static str,
+        group: Self,
+        combine: fn(Self, Option<FilterExpr>) -> Self,
+    ) -> Self {
+        if let Some(error) = group.error {
+            return self.with_error(error);
+        }
+        if !group.has_condition {
+            return self.with_empty_group_error(operator);
+        }
+        let mut builder = combine(self, group.expr);
+        builder.has_condition = true;
+        builder
+    }
+
+    /// Negates the group expression while preserving empty-group detection.
+    #[inline]
+    fn negate_non_empty_group(mut self) -> Self {
+        if self.expr.is_some() {
+            self.expr = Self::negate_expr(self.expr);
+        }
+        self
+    }
+
+    /// Records a structural filter expression error.
+    #[inline]
+    fn with_error(mut self, error: MetadataError) -> Self {
+        if self.error.is_none() {
+            self.error = Some(error);
+        }
+        self
+    }
+
+    /// Records an empty grouped expression error.
+    #[inline]
+    fn with_empty_group_error(self, operator: &'static str) -> Self {
+        self.with_error(MetadataError::InvalidFilterExpression {
+            message: format!("empty '{operator}' filter group is not allowed"),
+        })
     }
 
     /// Negates an optional expression.

@@ -43,17 +43,31 @@ impl From<&FilterExpr> for FilterExprWire {
 }
 
 impl FilterExprWire {
-    pub(crate) fn into_expr(self) -> FilterExpr {
+    pub(crate) fn into_expr(self) -> Result<FilterExpr, String> {
         match self {
-            Self::Condition { condition } => FilterExpr::Condition(condition.into_condition()),
+            Self::Condition { condition } => Ok(FilterExpr::Condition(condition.into_condition())),
             Self::And { children } => {
-                FilterExpr::And(children.into_iter().map(Self::into_expr).collect())
+                if children.is_empty() {
+                    return Err("empty 'and' filter group is not allowed".to_string());
+                }
+                children
+                    .into_iter()
+                    .map(Self::into_expr)
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(FilterExpr::And)
             }
             Self::Or { children } => {
-                FilterExpr::Or(children.into_iter().map(Self::into_expr).collect())
+                if children.is_empty() {
+                    return Err("empty 'or' filter group is not allowed".to_string());
+                }
+                children
+                    .into_iter()
+                    .map(Self::into_expr)
+                    .collect::<Result<Vec<_>, _>>()
+                    .map(FilterExpr::Or)
             }
-            Self::Not { expr } => FilterExpr::Not(Box::new(expr.into_expr())),
-            Self::False => FilterExpr::False,
+            Self::Not { expr } => expr.into_expr().map(|expr| FilterExpr::Not(Box::new(expr))),
+            Self::False => Ok(FilterExpr::False),
         }
     }
 }

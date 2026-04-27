@@ -11,6 +11,6 @@ use qubit_metadata::MetadataFilterBuilder;
 
 #[test]
 fn builder_default_builds_match_all_filter() {
-    let filter = MetadataFilterBuilder::default().build();
+    let filter = MetadataFilterBuilder::default().build().unwrap();
     assert!(filter.matches(&qubit_metadata::Metadata::new()));
 }

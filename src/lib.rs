@@ -52,7 +52,8 @@
 //! let filter = MetadataFilter::builder()
 //!     .eq("author", "alice")
 //!     .and_ge("priority", 1_i64)
-//!     .build();
+//!     .build()
+//!     .unwrap();
 //! assert!(filter.matches(&meta));
 //! ```
 //!

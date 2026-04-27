@@ -30,18 +30,23 @@ impl MetadataSchema {
     /// Validates one filter condition against this schema.
     fn validate_condition(&self, condition: &Condition) -> MetadataResult<()> {
         match condition {
-            Condition::Equal { key, value } | Condition::NotEqual { key, value } => {
-                self.validate_value_condition(key, "eq", value)
-            }
+            Condition::Equal { key, value } => self.validate_value_condition(key, "eq", value),
+            Condition::NotEqual { key, value } => self.validate_value_condition(key, "ne", value),
             Condition::Less { key, value } => self.validate_range_condition(key, "lt", value),
             Condition::LessEqual { key, value } => self.validate_range_condition(key, "le", value),
             Condition::Greater { key, value } => self.validate_range_condition(key, "gt", value),
             Condition::GreaterEqual { key, value } => {
                 self.validate_range_condition(key, "ge", value)
             }
-            Condition::In { key, values } | Condition::NotIn { key, values } => {
+            Condition::In { key, values } => {
                 for value in values {
                     self.validate_value_condition(key, "in_set", value)?;
+                }
+                Ok(())
+            }
+            Condition::NotIn { key, values } => {
+                for value in values {
+                    self.validate_value_condition(key, "not_in_set", value)?;
                 }
                 Ok(())
             }

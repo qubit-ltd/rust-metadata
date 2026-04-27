@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 
 use qubit_common::DataType;
-use qubit_metadata::{Metadata, MetadataError};
+use qubit_metadata::{Metadata, MetadataError, MetadataSchema};
 use qubit_value::Value;
 use serde_json::json;
 
@@ -118,11 +118,54 @@ fn get_or_returns_default_for_missing_key_or_type_mismatch() {
 }
 
 #[test]
-fn try_set_returns_previous_value() {
+fn set_checked_returns_previous_value() {
+    let schema = MetadataSchema::builder()
+        .required("key", DataType::String)
+        .build();
     let mut meta = Metadata::new();
-    meta.try_set("key", "first").unwrap();
-    let old = meta.try_set("key", "second").unwrap();
+    meta.set_checked(&schema, "key", "first").unwrap();
+    let old = meta.set_checked(&schema, "key", "second").unwrap();
     assert_eq!(old, Some(Value::String("first".to_string())));
+}
+
+#[test]
+fn set_checked_rejects_type_mismatch() {
+    let schema = MetadataSchema::builder()
+        .required("key", DataType::String)
+        .build();
+    let mut meta = Metadata::new();
+    let error = meta.set_checked(&schema, "key", 1_i64).unwrap_err();
+
+    match error {
+        MetadataError::TypeMismatch {
+            key,
+            expected,
+            actual,
+            ..
+        } => {
+            assert_eq!(key, "key");
+            assert_eq!(expected, DataType::String);
+            assert_eq!(actual, DataType::Int64);
+        }
+        other => panic!("expected TypeMismatch, got {other:?}"),
+    }
+}
+
+#[test]
+fn with_checked_rejects_unknown_field() {
+    let schema = MetadataSchema::builder()
+        .required("known", DataType::String)
+        .build();
+    let error = Metadata::new()
+        .with_checked(&schema, "unknown", "value")
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        MetadataError::UnknownField {
+            key: "unknown".to_string(),
+        }
+    );
 }
 
 #[test]
